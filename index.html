@@ -1,0 +1,331 @@
+<!-- tetris.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #282c34;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: #fff;
+        }
+
+        canvas {
+            border: 2px solid #61dafb;
+            background-color: #000;
+            display: block;
+        }
+
+        #game-container {
+            text-align: center;
+        }
+
+        h1 {
+            color: #61dafb;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <h1>Tetris</h1>
+        <canvas id="tetrisCanvas" width="240" height="480"></canvas>
+    </div>
+    <script>
+        // JavaScript для Tetris будет здесь
+        const canvas = document.getElementById('tetrisCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const ROW = 20;
+        const COL = 10;
+        const SQ = 24; // Размер одного квадрата
+        const VACANT = 'BLACK'; // Цвет пустых квадратов
+
+        // Рисуем квадрат
+        function drawSquare(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * SQ, y * SQ, SQ, SQ);
+
+            ctx.strokeStyle = 'GRAY';
+            ctx.strokeRect(x * SQ, y * SQ, SQ, SQ);
+        }
+
+        // Создаем игровое поле
+        let board = [];
+        for (r = 0; r < ROW; r++) {
+            board[r] = [];
+            for (c = 0; c < COL; c++) {
+                board[r][c] = VACANT;
+            }
+        }
+
+        // Рисуем игровое поле
+        function drawBoard() {
+            for (r = 0; r < ROW; r++) {
+                for (c = 0; c < COL; c++) {
+                    drawSquare(c, r, board[r][c]);
+                }
+            }
+        }
+
+        drawBoard();
+
+        // Фигуры Tetris
+        const PIECES = [
+            [[0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0]], // O
+
+            [[0, 0, 0, 0],
+            [0, 1, 0, 0],
+            [1, 1, 1, 0],
+            [0, 0, 0, 0]], // T
+
+            [[0, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 1, 0]], // L
+
+            [[0, 0, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 1, 1, 0]], // J
+
+            [[0, 0, 0, 0],
+            [1, 0, 0, 0],
+            [1, 1, 0, 0],
+            [0, 1, 0, 0]], // S
+
+            [[0, 0, 0, 0],
+            [0, 0, 1, 0],
+            [0, 1, 1, 0],
+            [0, 1, 0, 0]], // Z
+
+            [[0, 0, 0, 0],
+            [1, 1, 1, 1],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]]  // I
+        ];
+
+        const COLORS = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan', 'orange'];
+
+        // Генерация случайной фигуры
+        function randomPiece() {
+            let r = Math.floor(Math.random() * PIECES.length);
+            return new Piece(PIECES[r], COLORS[r]);
+        }
+
+        // Объект фигуры
+        function Piece(tetromino, color) {
+            this.tetromino = tetromino;
+            this.color = color;
+
+            this.x = 3; // Начальная позиция по X
+            this.y = -2; // Начальная позиция по Y (выше поля)
+
+            // Текущий шаблон фигуры, 0 - означает первый поворот
+            this.tetrominoN = 0;
+            this.activeTetromino = this.tetromino[this.tetrominoN];
+        }
+
+        // Заполняем фигуру
+        Piece.prototype.fill = function (color) {
+            for (r = 0; r < this.tetromino.length; r++) {
+                for (c = 0; c < this.tetromino.length; c++) {
+                    if (this.tetromino[r][c]) {
+                        drawSquare(this.x + c, this.y + r, color);
+                    }
+                }
+            }
+        }
+
+        // Рисуем фигуру на поле
+        Piece.prototype.draw = function () {
+            this.fill(this.color);
+        }
+
+        // Стираем фигуру
+        Piece.prototype.unDraw = function () {
+            this.fill(VACANT);
+        }
+
+        // Проверка столкновений
+        Piece.prototype.collision = function (x, y, piece) {
+            for (r = 0; r < piece.length; r++) {
+                for (c = 0; c < piece.length; c++) {
+                    if (!piece[r][c]) {
+                        continue;
+                    }
+                    // Координаты фигуры после потенциального перемещения
+                    let newX = this.x + c + x;
+                    let newY = this.y + r + y;
+
+                    // Условия столкновения со стенками или дном
+                    if (newX < 0 || newX >= COL || newY >= ROW) {
+                        return true;
+                    }
+                    // Пропускаем строки выше игрового поля
+                    if (newY < 0) {
+                        continue;
+                    }
+
+                    // Столкновение с уже занятым блоком на поле
+                    if (board[newY][newX] != VACANT) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Перемещение фигуры вниз
+        Piece.prototype.moveDown = function () {
+            if (!this.collision(0, 1, this.activeTetromino)) {
+                this.unDraw();
+                this.y++;
+                this.draw();
+            } else {
+                // Фиксация фигуры
+                this.lock();
+                if (!gameOver) {
+                    p = randomPiece();
+                }
+            }
+        }
+
+        // Перемещение фигуры влево
+        Piece.prototype.moveLeft = function () {
+            if (!this.collision(-1, 0, this.activeTetromino)) {
+                this.unDraw();
+                this.x--;
+                this.draw();
+            }
+        }
+
+        // Перемещение фигуры вправо
+        Piece.prototype.moveRight = function () {
+            if (!this.collision(1, 0, this.activeTetromino)) {
+                this.unDraw();
+                this.x++;
+                this.draw();
+            }
+        }
+
+        // Вращение фигуры
+        Piece.prototype.rotate = function () {
+            let nextN = (this.tetrominoN + 1) % this.tetromino.length;
+            let nextTetromino = this.tetromino[nextN];
+            let kick = 0;
+
+            if (this.collision(0, 0, nextTetromino)) {
+                if (this.x > COL / 2) {
+                    // Если фигура справа, то толкаем влево
+                    kick = -1;
+                } else {
+                    // Если фигура слева, то толкаем вправо
+                    kick = 1;
+                }
+            }
+
+            if (!this.collision(kick, 0, nextTetromino)) {
+                this.unDraw();
+                this.x += kick;
+                this.tetrominoN = nextN;
+                this.activeTetromino = this.tetromino[this.tetrominoN];
+                this.draw();
+            }
+        }
+
+        // Фиксация фигуры на поле
+        Piece.prototype.lock = function () {
+            for (r = 0; r < this.activeTetromino.length; r++) {
+                for (c = 0; c < this.activeTetromino.length; c++) {
+                    if (!this.activeTetromino[r][c]) {
+                        continue;
+                    }
+                    // Если фигура находится за пределами поля, это Game Over
+                    if (this.y + r < 0) {
+                        alert("Game Over");
+                        gameOver = true;
+                        break;
+                    }
+                    board[this.y + r][this.x + c] = this.color;
+                }
+            }
+            // Проверяем на полные ряды
+            for (r = 0; r < ROW; r++) {
+                let isRowFull = true;
+                for (c = 0; c < COL; c++) {
+                    if (board[r][c] == VACANT) {
+                        isRowFull = false;
+                        break;
+                    }
+                }
+                if (isRowFull) {
+                    // Сдвигаем все ряды выше текущего вниз
+                    for (y = r; y > 1; y--) {
+                        for (c = 0; c < COL; c++) {
+                            board[y][c] = board[y - 1][c];
+                        }
+                    }
+                    // Верхний ряд делаем пустым
+                    for (c = 0; c < COL; c++) {
+                        board[0][c] = VACANT;
+                    }
+                }
+            }
+            drawBoard();
+        }
+
+        let p = randomPiece(); // Первая фигура
+        p.draw();
+
+        let dropStart = Date.now();
+        let gameOver = false;
+
+        function drop() {
+            let now = Date.now();
+            let delta = now - dropStart;
+
+            if (delta > 1000 && !gameOver) { // Каждую секунду
+                p.moveDown();
+                dropStart = Date.now();
+            }
+            if (!gameOver) {
+                requestAnimationFrame(drop);
+            }
+        }
+
+        drop();
+
+        // Управление с клавиатуры
+        document.addEventListener('keydown', CONTROL);
+
+        function CONTROL(event) {
+            if (gameOver) return;
+            if (event.keyCode == 37) { // Левая стрелка
+                p.moveLeft();
+                dropStart = Date.now();
+            } else if (event.keyCode == 38) { // Вверх (вращение)
+                p.rotate();
+                dropStart = Date.now();
+            } else if (event.keyCode == 39) { // Правая стрелка
+                p.moveRight();
+                dropStart = Date.now();
+            } else if (event.keyCode == 40) { // Вниз
+                p.moveDown();
+            }
+        }
+    </script>
+</body>
+
+</html>
