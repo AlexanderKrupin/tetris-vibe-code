@@ -22,3 +22,30 @@ canvas {
 h1 {
   color: #61dafb;
 }
+
+#sidebar {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+#sidebar h2 {
+  margin-top: 0;
+  color: #61dafb;
+}
+
+#sidebar button {
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: #61dafb;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#sidebar button:hover {
+  opacity: 0.9;
+}

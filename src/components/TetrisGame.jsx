@@ -2,6 +2,14 @@ import React, { useRef, useEffect } from 'react';
 
 const TetrisGame = () => {
     const canvasRef = useRef(null);
+    const [score, setScore] = React.useState(0);
+    const [lines, setLines] = React.useState(0);
+    const [level, setLevel] = React.useState(1);
+    const [gameKey, setGameKey] = React.useState(0); // для перезапуска canvas loop
+    const [paused, setPaused] = React.useState(false);
+    const pausedRef = useRef(false);
+    const gameOverRef = useRef(false);
+    const rafRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -42,41 +50,105 @@ const TetrisGame = () => {
         drawBoard();
 
         // Фигуры Tetris
+        // Каждый элемент здесь — массив состояний поворотов (чтобы rotate работал)
         const PIECES = [
-            [[0, 0, 0, 0],
-             [0, 1, 1, 0],
-             [0, 1, 1, 0],
-             [0, 0, 0, 0]], // O
-
-            [[0, 0, 0, 0],
-             [0, 1, 0, 0],
-             [1, 1, 1, 0],
-             [0, 0, 0, 0]], // T
-
-            [[0, 0, 0, 0],
-             [0, 1, 0, 0],
-             [0, 1, 0, 0],
-             [0, 1, 1, 0]], // L
-
-            [[0, 0, 0, 0],
-             [0, 0, 1, 0],
-             [0, 0, 1, 0],
-             [0, 1, 1, 0]], // J
-
-            [[0, 0, 0, 0],
-             [1, 0, 0, 0],
-             [1, 1, 0, 0],
-             [0, 1, 0, 0]], // S
-
-            [[0, 0, 0, 0],
-             [0, 0, 1, 0],
-             [0, 1, 1, 0],
-             [0, 1, 0, 0]], // Z
-
-            [[0, 0, 0, 0],
-             [1, 1, 1, 1],
-             [0, 0, 0, 0],
-             [0, 0, 0, 0]]  // I
+            // O
+            [
+                [[0, 0, 0, 0],
+                 [0, 1, 1, 0],
+                 [0, 1, 1, 0],
+                 [0, 0, 0, 0]]
+            ],
+            // T
+            [
+                [[0, 0, 0, 0],
+                 [0, 1, 0, 0],
+                 [1, 1, 1, 0],
+                 [0, 0, 0, 0]],
+                [[0, 0, 0, 0],
+                 [0, 1, 0, 0],
+                 [0, 1, 1, 0],
+                 [0, 1, 0, 0]],
+                [[0, 0, 0, 0],
+                 [0, 0, 0, 0],
+                 [1, 1, 1, 0],
+                 [0, 1, 0, 0]],
+                [[0, 0, 0, 0],
+                 [0, 1, 0, 0],
+                 [1, 1, 0, 0],
+                 [0, 1, 0, 0]]
+            ],
+            // L
+            [
+                [[0, 0, 0, 0],
+                 [0, 1, 0, 0],
+                 [0, 1, 0, 0],
+                 [0, 1, 1, 0]],
+                [[0, 0, 0, 0],
+                 [0, 0, 0, 0],
+                 [1, 1, 1, 0],
+                 [1, 0, 0, 0]],
+                [[0, 0, 0, 0],
+                 [1, 1, 0, 0],
+                 [0, 1, 0, 0],
+                 [0, 1, 0, 0]],
+                [[0, 0, 0, 0],
+                 [0, 0, 1, 0],
+                 [1, 1, 1, 0],
+                 [0, 0, 0, 0]]
+            ],
+            // J
+            [
+                [[0, 0, 0, 0],
+                 [0, 0, 1, 0],
+                 [0, 0, 1, 0],
+                 [0, 1, 1, 0]],
+                [[0, 0, 0, 0],
+                 [1, 0, 0, 0],
+                 [1, 1, 1, 0],
+                 [0, 0, 0, 0]],
+                [[0, 0, 0, 0],
+                 [0, 1, 1, 0],
+                 [0, 1, 0, 0],
+                 [0, 1, 0, 0]],
+                [[0, 0, 0, 0],
+                 [0, 0, 0, 0],
+                 [1, 1, 1, 0],
+                 [0, 0, 1, 0]]
+            ],
+            // S
+            [
+                [[0, 0, 0, 0],
+                 [1, 0, 0, 0],
+                 [1, 1, 0, 0],
+                 [0, 1, 0, 0]],
+                [[0, 0, 0, 0],
+                 [0, 1, 1, 0],
+                 [1, 1, 0, 0],
+                 [0, 0, 0, 0]]
+            ],
+            // Z
+            [
+                [[0, 0, 0, 0],
+                 [0, 0, 1, 0],
+                 [0, 1, 1, 0],
+                 [0, 1, 0, 0]],
+                [[0, 0, 0, 0],
+                 [0, 1, 0, 0],
+                 [1, 1, 0, 0],
+                 [1, 0, 0, 0]]
+            ],
+            // I
+            [
+                [[0, 0, 0, 0],
+                 [1, 1, 1, 1],
+                 [0, 0, 0, 0],
+                 [0, 0, 0, 0]],
+                [[0, 0, 1, 0],
+                 [0, 0, 1, 0],
+                 [0, 0, 1, 0],
+                 [0, 0, 1, 0]]
+            ]
         ];
 
         const COLORS = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan', 'orange'];
@@ -159,8 +231,9 @@ const TetrisGame = () => {
             } else {
                 // Фиксация фигуры
                 this.lock();
-                if (!gameOver) {
-                    p = randomPiece();
+                if (!gameOverRef.current) {
+                    // Создаём новую фигуру через spawnPiece, чтобы проверить коллизию при спавне
+                    spawnPiece();
                 }
             }
         }
@@ -244,37 +317,63 @@ const TetrisGame = () => {
                     for (let c = 0; c < COL; c++) {
                         board[0][c] = VACANT;
                     }
+                    // Обновляем счёт и линии
+                    setLines(prev => prev + 1);
+                    setScore(prev => prev + 100 * level);
+                    // Простейшее повышение уровня каждые 10 линий
+                    setLevel(prev => Math.floor((lines + 1) / 10) + 1);
                 }
             }
             drawBoard();
         }
 
-        let p = randomPiece(); // Первая фигура
-        p.draw();
+        let p = null;
+
+        // сброс флага GameOver перед спавном новой игры/фигуры
+        gameOverRef.current = false;
+
+        // функция спавна новой фигуры с проверкой пересечения
+        function spawnPiece() {
+            p = randomPiece();
+            // обновляем activeTetromino (на случай, если не инициализировано)
+            p.activeTetromino = p.tetromino[p.tetrominoN];
+            // если при спавне есть пересечение — Game Over
+            if (p.collision(0, 0, p.activeTetromino)) {
+                alert("Game Over");
+                gameOverRef.current = true;
+                if (rafRef.current) cancelAnimationFrame(rafRef.current);
+            } else {
+                p.draw();
+            }
+        }
+
+        spawnPiece();
 
         let dropStart = Date.now();
-        let gameOver = false;
+        // используем gameOverRef вместо локальной переменной
+        rafRef.current = null;
 
         function drop() {
             let now = Date.now();
             let delta = now - dropStart;
 
-            if (delta > 1000 && !gameOver) { // Каждую секунду
-                p.moveDown();
-                dropStart = Date.now();
+            // не обновляем, если пауза или gameOver
+            if (!pausedRef.current && !gameOverRef.current) {
+                if (delta > 1000) { // Каждую секунду
+                    p.moveDown();
+                    dropStart = Date.now();
+                }
             }
-            if (!gameOver) {
-                requestAnimationFrame(drop);
+            if (!gameOverRef.current) {
+                rafRef.current = requestAnimationFrame(drop);
             }
         }
 
-        drop();
+        rafRef.current = requestAnimationFrame(drop);
 
         // Управление с клавиатуры
-        document.addEventListener('keydown', CONTROL);
-
         function CONTROL(event) {
-            if (gameOver) return;
+            if (gameOverRef.current || pausedRef.current) return;
             if (event.keyCode == 37) { // Левая стрелка
                 p.moveLeft();
                 dropStart = Date.now();
@@ -289,12 +388,38 @@ const TetrisGame = () => {
             }
         }
 
-    }, []);
+        document.addEventListener('keydown', CONTROL);
+
+        // Очистка при размонтировании / перезапуске
+        return () => {
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+            document.removeEventListener('keydown', CONTROL);
+        };
+
+    }, [gameKey]);
 
     return (
-        <div id="game-container">
-            <h1>Tetris</h1>
-            <canvas ref={canvasRef} id="tetrisCanvas" width="240" height="480"></canvas>
+        <div id="game-wrapper" style={{display: 'flex', gap: '24px', alignItems: 'flex-start'}}>
+            <div id="game-container">
+                <h1>Tetris</h1>
+                <canvas ref={canvasRef} id="tetrisCanvas" width="240" height="480"></canvas>
+            </div>
+
+            <aside id="sidebar" style={{width: '200px'}}>
+            <div id="stats" style={{marginBottom: '16px'}}>
+                    <h2>Статистика</h2>
+                    <p>Счёт: <strong>{score}</strong></p>
+                    <p>Линии: <strong>{lines}</strong></p>
+                    <p>Уровень: <strong>{level}</strong></p>
+                </div>
+
+                <div id="controls">
+                    <button id="new-game" onClick={() => { gameOverRef.current = false; setScore(0); setLines(0); setLevel(1); setPaused(false); pausedRef.current = false; setGameKey(k => k + 1); }}>Новая игра</button>
+                    <button id="restart" onClick={() => { gameOverRef.current = false; setPaused(false); pausedRef.current = false; setGameKey(k => k + 1); }}>Перезапустить</button>
+                    <button id="pause" onClick={() => { setPaused(p => { const next = !p; pausedRef.current = next; return next; }); }}>{paused ? 'Снять паузу' : 'Пауза'}</button>
+                    <button id="force-end" onClick={() => { gameOverRef.current = true; if (rafRef.current) cancelAnimationFrame(rafRef.current); alert('Игра завершена'); }}>Завершить игру</button>
+                </div>
+            </aside>
         </div>
     );
 };
