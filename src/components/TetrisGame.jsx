@@ -1,4 +1,88 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from "react";
+
+// Компонент для отображения следующей фигуры
+const NextPiece = ({ nextPiece }) => {
+    const canvasRef = useRef(null);
+    const SQ = 20; // Размер квадрата для предпросмотра
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !nextPiece) return;
+
+        const ctx = canvas.getContext("2d");
+
+        // Очищаем canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Функция для рисования квадрата в предпросмотре
+        function drawSquare(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * SQ, y * SQ, SQ, SQ);
+
+            ctx.strokeStyle = "GRAY";
+            ctx.strokeRect(x * SQ, y * SQ, SQ, SQ);
+        }
+
+        // Рисуем следующую фигуру
+        if (nextPiece && nextPiece.activeTetromino) {
+            // Вычисляем смещение для центрирования фигуры
+            let offsetX = 0;
+            let offsetY = 0;
+
+            // Находим границы фигуры для центрирования
+            let minX = 4,
+                maxX = 0,
+                minY = 4,
+                maxY = 0;
+            for (let r = 0; r < nextPiece.activeTetromino.length; r++) {
+                for (let c = 0; c < nextPiece.activeTetromino[r].length; c++) {
+                    if (nextPiece.activeTetromino[r][c]) {
+                        minX = Math.min(minX, c);
+                        maxX = Math.max(maxX, c);
+                        minY = Math.min(minY, r);
+                        maxY = Math.max(maxY, r);
+                    }
+                }
+            }
+
+            const pieceWidth = maxX - minX + 1;
+            const pieceHeight = maxY - minY + 1;
+
+            // Центрируем фигуру в canvas 4x4
+            offsetX = (4 - pieceWidth) / 2;
+            offsetY = (4 - pieceHeight) / 2;
+
+            // Рисуем фигуру со смещением
+            for (let r = 0; r < nextPiece.activeTetromino.length; r++) {
+                for (let c = 0; c < nextPiece.activeTetromino[r].length; c++) {
+                    if (nextPiece.activeTetromino[r][c]) {
+                        drawSquare(
+                            c + offsetX - minX,
+                            r + offsetY - minY,
+                            nextPiece.color,
+                        );
+                    }
+                }
+            }
+        }
+    }, [nextPiece]);
+
+    return (
+        <div id="next-piece" style={{ marginBottom: "16px" }}>
+            <h2>Следующая фигура</h2>
+            <canvas
+                ref={canvasRef}
+                id="nextPieceCanvas"
+                width={80}
+                height={80}
+                style={{
+                    border: "1px solid cyan",
+                    backgroundColor: "BLACK",
+                }}
+            ></canvas>
+        </div>
+    );
+};
 
 const TetrisGame = () => {
     const canvasRef = useRef(null);
@@ -7,25 +91,26 @@ const TetrisGame = () => {
     const [level, setLevel] = React.useState(1);
     const [gameKey, setGameKey] = React.useState(0); // для перезапуска canvas loop
     const [paused, setPaused] = React.useState(false);
+    const [nextPiece, setNextPiece] = React.useState(null);
     const pausedRef = useRef(false);
     const gameOverRef = useRef(false);
     const rafRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
 
         const ROW = 20;
         const COL = 10;
         const SQ = 24; // Размер одного квадрата
-        const VACANT = 'BLACK'; // Цвет пустых квадратов
+        const VACANT = "BLACK"; // Цвет пустых квадратов
 
         // Рисуем квадрат
         function drawSquare(x, y, color) {
             ctx.fillStyle = color;
             ctx.fillRect(x * SQ, y * SQ, SQ, SQ);
 
-            ctx.strokeStyle = 'GRAY';
+            ctx.strokeStyle = "GRAY";
             ctx.strokeRect(x * SQ, y * SQ, SQ, SQ);
         }
 
@@ -54,104 +139,150 @@ const TetrisGame = () => {
         const PIECES = [
             // O
             [
-                [[0, 0, 0, 0],
-                 [0, 1, 1, 0],
-                 [0, 1, 1, 0],
-                 [0, 0, 0, 0]]
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 1, 0],
+                    [0, 1, 1, 0],
+                    [0, 0, 0, 0],
+                ],
             ],
             // T
             [
-                [[0, 0, 0, 0],
-                 [0, 1, 0, 0],
-                 [1, 1, 1, 0],
-                 [0, 0, 0, 0]],
-                [[0, 0, 0, 0],
-                 [0, 1, 0, 0],
-                 [0, 1, 1, 0],
-                 [0, 1, 0, 0]],
-                [[0, 0, 0, 0],
-                 [0, 0, 0, 0],
-                 [1, 1, 1, 0],
-                 [0, 1, 0, 0]],
-                [[0, 0, 0, 0],
-                 [0, 1, 0, 0],
-                 [1, 1, 0, 0],
-                 [0, 1, 0, 0]]
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [1, 1, 1, 0],
+                    [0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 1, 0],
+                    [0, 1, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [1, 1, 1, 0],
+                    [0, 1, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [1, 1, 0, 0],
+                    [0, 1, 0, 0],
+                ],
             ],
             // L
             [
-                [[0, 0, 0, 0],
-                 [0, 1, 0, 0],
-                 [0, 1, 0, 0],
-                 [0, 1, 1, 0]],
-                [[0, 0, 0, 0],
-                 [0, 0, 0, 0],
-                 [1, 1, 1, 0],
-                 [1, 0, 0, 0]],
-                [[0, 0, 0, 0],
-                 [1, 1, 0, 0],
-                 [0, 1, 0, 0],
-                 [0, 1, 0, 0]],
-                [[0, 0, 0, 0],
-                 [0, 0, 1, 0],
-                 [1, 1, 1, 0],
-                 [0, 0, 0, 0]]
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 1, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [1, 1, 1, 0],
+                    [1, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [1, 1, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 1, 0],
+                    [1, 1, 1, 0],
+                    [0, 0, 0, 0],
+                ],
             ],
             // J
             [
-                [[0, 0, 0, 0],
-                 [0, 0, 1, 0],
-                 [0, 0, 1, 0],
-                 [0, 1, 1, 0]],
-                [[0, 0, 0, 0],
-                 [1, 0, 0, 0],
-                 [1, 1, 1, 0],
-                 [0, 0, 0, 0]],
-                [[0, 0, 0, 0],
-                 [0, 1, 1, 0],
-                 [0, 1, 0, 0],
-                 [0, 1, 0, 0]],
-                [[0, 0, 0, 0],
-                 [0, 0, 0, 0],
-                 [1, 1, 1, 0],
-                 [0, 0, 1, 0]]
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 1, 0],
+                    [0, 1, 1, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [1, 0, 0, 0],
+                    [1, 1, 1, 0],
+                    [0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 1, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [1, 1, 1, 0],
+                    [0, 0, 1, 0],
+                ],
             ],
             // S
             [
-                [[0, 0, 0, 0],
-                 [1, 0, 0, 0],
-                 [1, 1, 0, 0],
-                 [0, 1, 0, 0]],
-                [[0, 0, 0, 0],
-                 [0, 1, 1, 0],
-                 [1, 1, 0, 0],
-                 [0, 0, 0, 0]]
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 1, 0],
+                    [1, 1, 0, 0],
+                    [0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 1, 0],
+                    [0, 0, 1, 0],
+                ],
             ],
             // Z
             [
-                [[0, 0, 0, 0],
-                 [0, 0, 1, 0],
-                 [0, 1, 1, 0],
-                 [0, 1, 0, 0]],
-                [[0, 0, 0, 0],
-                 [0, 1, 0, 0],
-                 [1, 1, 0, 0],
-                 [1, 0, 0, 0]]
+                [
+                    [0, 0, 0, 0],
+                    [0, 1, 1, 0],
+                    [1, 1, 0, 0],
+                    [0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [1, 0, 0, 0],
+                    [1, 1, 0, 0],
+                    [0, 1, 0, 0],
+                ],
             ],
             // I
             [
-                [[0, 0, 0, 0],
-                 [1, 1, 1, 1],
-                 [0, 0, 0, 0],
-                 [0, 0, 0, 0]],
-                [[0, 0, 1, 0],
-                 [0, 0, 1, 0],
-                 [0, 0, 1, 0],
-                 [0, 0, 1, 0]]
-            ]
+                [
+                    [0, 0, 0, 0],
+                    [1, 1, 1, 1],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 1, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 1, 0],
+                ],
+            ],
         ];
 
-        const COLORS = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan', 'orange'];
+        const COLORS = [
+            "red",
+            "green",
+            "blue",
+            "yellow",
+            "purple",
+            "cyan",
+            "orange",
+        ];
 
         // Генерация случайной фигуры
         function randomPiece() {
@@ -173,7 +304,7 @@ const TetrisGame = () => {
         }
 
         // Заполняем фигуру
-        Piece.prototype.fill = function(color) {
+        Piece.prototype.fill = function (color) {
             for (let r = 0; r < this.activeTetromino.length; r++) {
                 for (let c = 0; c < this.activeTetromino.length; c++) {
                     if (this.activeTetromino[r][c]) {
@@ -181,20 +312,20 @@ const TetrisGame = () => {
                     }
                 }
             }
-        }
+        };
 
         // Рисуем фигуру на поле
-        Piece.prototype.draw = function() {
+        Piece.prototype.draw = function () {
             this.fill(this.color);
-        }
+        };
 
         // Стираем фигуру
-        Piece.prototype.unDraw = function() {
+        Piece.prototype.unDraw = function () {
             this.fill(VACANT);
-        }
+        };
 
         // Проверка столкновений
-        Piece.prototype.collision = function(x, y, piece) {
+        Piece.prototype.collision = function (x, y, piece) {
             for (let r = 0; r < piece.length; r++) {
                 for (let c = 0; c < piece.length; c++) {
                     if (!piece[r][c]) {
@@ -220,10 +351,10 @@ const TetrisGame = () => {
                 }
             }
             return false;
-        }
+        };
 
         // Перемещение фигуры вниз
-        Piece.prototype.moveDown = function() {
+        Piece.prototype.moveDown = function () {
             if (!this.collision(0, 1, this.activeTetromino)) {
                 this.unDraw();
                 this.y++;
@@ -236,28 +367,28 @@ const TetrisGame = () => {
                     spawnPiece();
                 }
             }
-        }
+        };
 
         // Перемещение фигуры влево
-        Piece.prototype.moveLeft = function() {
+        Piece.prototype.moveLeft = function () {
             if (!this.collision(-1, 0, this.activeTetromino)) {
                 this.unDraw();
                 this.x--;
                 this.draw();
             }
-        }
+        };
 
         // Перемещение фигуры вправо
-        Piece.prototype.moveRight = function() {
+        Piece.prototype.moveRight = function () {
             if (!this.collision(1, 0, this.activeTetromino)) {
                 this.unDraw();
                 this.x++;
                 this.draw();
             }
-        }
+        };
 
         // Вращение фигуры
-        Piece.prototype.rotate = function() {
+        Piece.prototype.rotate = function () {
             let nextN = (this.tetrominoN + 1) % this.tetromino.length;
             let nextTetromino = this.tetromino[nextN];
             let kick = 0;
@@ -279,10 +410,10 @@ const TetrisGame = () => {
                 this.activeTetromino = this.tetromino[this.tetrominoN];
                 this.draw();
             }
-        }
+        };
 
         // Фиксация фигуры на поле
-        Piece.prototype.lock = function() {
+        Piece.prototype.lock = function () {
             for (let r = 0; r < this.activeTetromino.length; r++) {
                 for (let c = 0; c < this.activeTetromino.length; c++) {
                     if (!this.activeTetromino[r][c]) {
@@ -291,7 +422,7 @@ const TetrisGame = () => {
                     // Если фигура находится за пределами поля, это Game Over
                     if (this.y + r < 0) {
                         alert("Game Over");
-                        gameOver = true;
+                        gameOverRef.current = true;
                         break;
                     }
                     board[this.y + r][this.x + c] = this.color;
@@ -318,25 +449,43 @@ const TetrisGame = () => {
                         board[0][c] = VACANT;
                     }
                     // Обновляем счёт и линии
-                    setLines(prev => prev + 1);
-                    setScore(prev => prev + 100 * level);
-                    // Простейшее повышение уровня каждые 10 линий
-                    setLevel(prev => Math.floor((lines + 1) / 10) + 1);
+                    setLines((prev) => prev + 1);
+                    setLines((currentLines) => {
+                        setScore((prev) => prev + 100 * level);
+                        // Простейшее повышение уровня каждые 10 линий
+                        setLevel(
+                            (prev) => Math.floor((currentLines + 1) / 10) + 1,
+                        );
+                        return currentLines + 1;
+                    });
                 }
             }
             drawBoard();
-        }
+        };
 
         let p = null;
+        let next = null;
 
         // сброс флага GameOver перед спавном новой игры/фигуры
         gameOverRef.current = false;
 
         // функция спавна новой фигуры с проверкой пересечения
         function spawnPiece() {
-            p = randomPiece();
-            // обновляем activeTetromino (на случай, если не инициализировано)
-            p.activeTetromino = p.tetromino[p.tetrominoN];
+            if (next) {
+                p = next;
+                p.x = 3; // Начальная позиция по X
+                p.y = -2; // Начальная позиция по Y
+                p.tetrominoN = 0;
+                p.activeTetromino = p.tetromino[p.tetrominoN];
+            } else {
+                p = randomPiece();
+            }
+
+            // Генерируем новую следующую фигуру
+            next = randomPiece();
+            next.activeTetromino = next.tetromino[next.tetrominoN];
+            setNextPiece(next);
+
             // если при спавне есть пересечение — Game Over
             if (p.collision(0, 0, p.activeTetromino)) {
                 alert("Game Over");
@@ -359,7 +508,8 @@ const TetrisGame = () => {
 
             // не обновляем, если пауза или gameOver
             if (!pausedRef.current && !gameOverRef.current) {
-                if (delta > 1000) { // Каждую секунду
+                if (delta > 1000) {
+                    // Каждую секунду
                     p.moveDown();
                     dropStart = Date.now();
                 }
@@ -374,50 +524,118 @@ const TetrisGame = () => {
         // Управление с клавиатуры
         function CONTROL(event) {
             if (gameOverRef.current || pausedRef.current) return;
-            if (event.keyCode == 37) { // Левая стрелка
+            if (event.keyCode == 37) {
+                // Левая стрелка
                 p.moveLeft();
                 dropStart = Date.now();
-            } else if (event.keyCode == 38) { // Вверх (вращение)
+            } else if (event.keyCode == 38) {
+                // Вверх (вращение)
                 p.rotate();
                 dropStart = Date.now();
-            } else if (event.keyCode == 39) { // Правая стрелка
+            } else if (event.keyCode == 39) {
+                // Правая стрелка
                 p.moveRight();
                 dropStart = Date.now();
-            } else if (event.keyCode == 40) { // Вниз
+            } else if (event.keyCode == 40) {
+                // Вниз
                 p.moveDown();
             }
         }
 
-        document.addEventListener('keydown', CONTROL);
+        document.addEventListener("keydown", CONTROL);
+
+        // Сбрасываем следующую фигуру при перезапуске
+        setNextPiece(null);
 
         // Очистка при размонтировании / перезапуске
         return () => {
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
-            document.removeEventListener('keydown', CONTROL);
+            document.removeEventListener("keydown", CONTROL);
         };
-
-    }, [gameKey]);
+    }, [gameKey, lines, level]);
 
     return (
-        <div id="game-wrapper" style={{display: 'flex', gap: '24px', alignItems: 'flex-start'}}>
+        <div
+            id="game-wrapper"
+            style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}
+        >
             <div id="game-container">
                 <h1>Tetris</h1>
-                <canvas ref={canvasRef} id="tetrisCanvas" width="240" height="480"></canvas>
+                <canvas
+                    ref={canvasRef}
+                    id="tetrisCanvas"
+                    width="240"
+                    height="480"
+                ></canvas>
             </div>
 
-            <aside id="sidebar" style={{width: '200px'}}>
-            <div id="stats" style={{marginBottom: '16px'}}>
+            <aside id="sidebar" style={{ width: "200px" }}>
+                <NextPiece nextPiece={nextPiece} />
+
+                <div id="stats" style={{ marginBottom: "16px" }}>
                     <h2>Статистика</h2>
-                    <p>Счёт: <strong>{score}</strong></p>
-                    <p>Линии: <strong>{lines}</strong></p>
-                    <p>Уровень: <strong>{level}</strong></p>
+                    <p>
+                        Счёт: <strong>{score}</strong>
+                    </p>
+                    <p>
+                        Линии: <strong>{lines}</strong>
+                    </p>
+                    <p>
+                        Уровень: <strong>{level}</strong>
+                    </p>
                 </div>
 
                 <div id="controls">
-                    <button id="new-game" onClick={() => { gameOverRef.current = false; setScore(0); setLines(0); setLevel(1); setPaused(false); pausedRef.current = false; setGameKey(k => k + 1); }}>Новая игра</button>
-                    <button id="restart" onClick={() => { gameOverRef.current = false; setPaused(false); pausedRef.current = false; setGameKey(k => k + 1); }}>Перезапустить</button>
-                    <button id="pause" onClick={() => { setPaused(p => { const next = !p; pausedRef.current = next; return next; }); }}>{paused ? 'Снять паузу' : 'Пауза'}</button>
-                    <button id="force-end" onClick={() => { gameOverRef.current = true; if (rafRef.current) cancelAnimationFrame(rafRef.current); alert('Игра завершена'); }}>Завершить игру</button>
+                    <button
+                        id="new-game"
+                        onClick={() => {
+                            gameOverRef.current = false;
+                            setScore(0);
+                            setLines(0);
+                            setLevel(1);
+                            setPaused(false);
+                            pausedRef.current = false;
+                            setNextPiece(null);
+                            setGameKey((k) => k + 1);
+                        }}
+                    >
+                        Новая игра
+                    </button>
+                    <button
+                        id="restart"
+                        onClick={() => {
+                            gameOverRef.current = false;
+                            setPaused(false);
+                            pausedRef.current = false;
+                            setNextPiece(null);
+                            setGameKey((k) => k + 1);
+                        }}
+                    >
+                        Перезапустить
+                    </button>
+                    <button
+                        id="pause"
+                        onClick={() => {
+                            setPaused((p) => {
+                                const next = !p;
+                                pausedRef.current = next;
+                                return next;
+                            });
+                        }}
+                    >
+                        {paused ? "Снять паузу" : "Пауза"}
+                    </button>
+                    <button
+                        id="force-end"
+                        onClick={() => {
+                            gameOverRef.current = true;
+                            if (rafRef.current)
+                                cancelAnimationFrame(rafRef.current);
+                            alert("Игра завершена");
+                        }}
+                    >
+                        Завершить игру
+                    </button>
                 </div>
             </aside>
         </div>
